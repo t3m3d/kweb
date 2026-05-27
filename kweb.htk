@@ -1,0 +1,248 @@
+// kweb — Krypton Web Framework CLI
+// The third program in the Krypton ecosystem (after kryofetch + kmon).
+//
+// Build:
+//   Windows: kcc kweb.htk > kweb_tmp.c && gcc kweb_tmp.c -o kweb.exe -lws2_32 -w
+//   Linux:   kcc kweb.htk > kweb_tmp.c && gcc kweb_tmp.c -o kweb -w
+//   macOS:   kcc kweb.htk > kweb_tmp.c && clang kweb_tmp.c -o kweb -w
+//
+// Usage:
+//   kweb init <name>            Create a new .htk project
+//   kweb build                  Build dist/ from export.htk
+//   kweb serve [port]           Serve dist/ locally (default: 8080)
+//   kweb deploy <host> <user>   Deploy dist/ via SFTP
+
+import "k:htmk"
+import "k:server"
+
+func printUsage() {
+    printErr("kweb — Krypton Web Framework")
+    printErr("")
+    printErr("Usage:")
+    printErr("  kweb init <name>            Create a new .htk project")
+    printErr("  kweb build                  Build dist/ from export.htk")
+    printErr("  kweb serve [port]           Serve dist/ locally (default: 8080)")
+    printErr("  kweb deploy <host> <user>   Deploy dist/ via SFTP")
+    printErr("")
+    printErr("https://krypton-lang.org")
+}
+
+// ── Platform-safe directory creation ─────────────────────────────────
+
+func makeDir(path) {
+    exec("cmd /c mkdir " + replace(path, "/", fromCharCode(92)) + " 2>nul")
+}
+
+// ── Scaffold helpers ─────────────────────────────────────────────────
+
+func scaffoldCSS() {
+    emit "body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#222;line-height:1.6}" +
+         "h1{color:#7722ff}" +
+         "a{color:#7722ff}" +
+         "nav a{margin-right:16px}" +
+         ".card{border:1px solid #ddd;border-radius:8px;padding:20px;margin:12px 0}"
+}
+
+func scaffoldSite(projectName) {
+    let NL = fromCharCode(10)
+    let DQ = fromCharCode(34)
+
+    emit "import " + DQ + "k:htmk" + DQ + NL +
+        "import " + DQ + "k:server" + DQ + NL + NL +
+
+        "func css() {" + NL +
+        "    emit htStyle(" + DQ + scaffoldCSS() + DQ + ")" + NL +
+        "}" + NL + NL +
+
+        "func nav() {" + NL +
+        "    emit htEl(" + DQ + "nav" + DQ + ", htA(" + DQ + "/" + DQ + ", " + DQ + "Home" + DQ + ") + htA(" + DQ + "/about" + DQ + ", " + DQ + "About" + DQ + "))" + NL +
+        "}" + NL + NL +
+
+        "func page(title, content) {" + NL +
+        "    emit htPage(title, css(), nav() + content)" + NL +
+        "}" + NL + NL +
+
+        "func pageHome() {" + NL +
+        "    emit page(" + DQ + projectName + DQ + ", htH1(" + DQ + "Welcome to " + projectName + DQ + ") + htP(" + DQ + "Edit site.htk to get started." + DQ + "))" + NL +
+        "}" + NL + NL +
+
+        "func pageAbout() {" + NL +
+        "    emit page(" + DQ + "About" + DQ + ", htH1(" + DQ + "About" + DQ + ") + htP(" + DQ + "Built with the Krypton Web Framework." + DQ + "))" + NL +
+        "}" + NL + NL +
+
+        "just run {" + NL +
+        "    serverInit(" + DQ + "8080" + DQ + ")" + NL +
+        "    while " + DQ + "1" + DQ + " == " + DQ + "1" + DQ + " {" + NL +
+        "        let got = serverNext()" + NL +
+        "        if got == " + DQ + "1" + DQ + " {" + NL +
+        "            let path = serverReqPath()" + NL +
+        "            if path == " + DQ + "/" + DQ + " { serverRespond(pageHome()) }" + NL +
+        "            else if path == " + DQ + "/about" + DQ + " { serverRespond(pageAbout()) }" + NL +
+        "            else { serverRespond404() }" + NL +
+        "        }" + NL +
+        "    }" + NL +
+        "}" + NL
+}
+
+func scaffoldExport(projectName) {
+    let NL = fromCharCode(10)
+    let DQ = fromCharCode(34)
+
+    emit "import " + DQ + "k:htmk" + DQ + NL + NL +
+
+        "// Copy your page functions from site.htk here," + NL +
+        "// then uncomment the writeFile calls below." + NL + NL +
+
+        "just run {" + NL +
+        "    // writeFile(" + DQ + "dist/index.html" + DQ + ", pageHome())" + NL +
+        "    // writeFile(" + DQ + "dist/about.html" + DQ + ", pageAbout())" + NL +
+        "    printErr(" + DQ + "export.htk: copy page functions from site.htk and uncomment writeFile calls" + DQ + ")" + NL +
+        "}" + NL
+}
+
+func scaffoldHtaccess() {
+    let NL = fromCharCode(10)
+    let DQ = fromCharCode(34)
+
+    emit "DirectoryIndex index.html" + NL + NL +
+        "RewriteEngine On" + NL + NL +
+        "RewriteCond %{HTTPS} off" + NL +
+        "RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]" + NL + NL +
+        "RewriteCond %{REQUEST_FILENAME} !-f" + NL +
+        "RewriteCond %{REQUEST_FILENAME} !-d" + NL +
+        "RewriteRule ^([^.]+)$ $1.html [NC,L]" + NL + NL +
+        "Header set X-Content-Type-Options " + DQ + "nosniff" + DQ + NL +
+        "Header set X-Frame-Options " + DQ + "DENY" + DQ + NL +
+        "Header set X-XSS-Protection " + DQ + "1; mode=block" + DQ + NL +
+        "Header set Referrer-Policy " + DQ + "strict-origin-when-cross-origin" + DQ + NL +
+        "Header set Strict-Transport-Security " + DQ + "max-age=31536000; includeSubDomains" + DQ + NL
+}
+
+// ── Commands ─────────────────────────────────────────────────────────
+
+func doInit(projectName) {
+    makeDir(projectName)
+    makeDir(projectName + "/dist")
+
+    writeFile(projectName + "/site.htk", scaffoldSite(projectName))
+    writeFile(projectName + "/export.htk", scaffoldExport(projectName))
+    writeFile(projectName + "/dist/.htaccess", scaffoldHtaccess())
+
+    printErr("kweb: created project " + projectName + "/")
+    printErr("")
+    printErr("  " + projectName + "/")
+    printErr("    site.htk         <- your web app (edit this)")
+    printErr("    export.htk       <- static site generator")
+    printErr("    dist/            <- output for deployment")
+    printErr("    dist/.htaccess   <- security headers + clean URLs")
+    printErr("")
+    printErr("Quick start:")
+    printErr("  cd " + projectName)
+    printErr("  khtk site.htk --run")
+}
+
+func doBuild() {
+    printErr("kweb: compiling export.htk...")
+    let tmpC = "kweb_build_tmp.c"
+    let tmpExe = "kweb_build_tmp.exe"
+
+    let src = exec("kcc export.htk")
+    writeFile(tmpC, src)
+
+    let rc = shellRun("gcc " + tmpC + " -o " + tmpExe + " -w")
+    if rc != "0" {
+        printErr("kweb: gcc failed")
+        emit 1
+    }
+
+    printErr("kweb: generating pages...")
+    let out = exec(tmpExe)
+    if len(out) > 0 { print(out) }
+
+    shellRun("rm -f " + tmpC + " " + tmpExe + " 2>nul")
+    printErr("kweb: build complete")
+}
+
+func doServe(port) {
+    printErr("kweb: serving dist/ on http://127.0.0.1:" + port)
+    printErr("kweb: press Ctrl+C to stop")
+    serverInit(port)
+    while "1" == "1" {
+        let got = serverNext()
+        if got == "1" {
+            let path = serverReqPath()
+            if path == "/" { path = "/index.html" }
+            let filePath = "dist" + path
+            let ok = serverRespondFile(filePath)
+            if ok == "0" {
+                serverRespond404()
+            }
+        }
+    }
+}
+
+func doDeploy(sftpHost, sftpUser) {
+    printErr("kweb: deploying dist/ to " + sftpUser + "@" + sftpHost)
+    printErr("kweb: you will be prompted for your password")
+
+    let files = exec("ls dist/")
+    let i = 0
+    let n = lineCount(files)
+    let uploaded = 0
+    while i < n {
+        let f = trim(getLine(files, i))
+        if len(f) > 0 {
+            printErr("  uploading " + f + "...")
+            let cmd = "curl -T dist/" + f + " sftp://" + sftpHost + "/public_html/" + f + " --user " + sftpUser + " --insecure -s"
+            let rc = shellRun(cmd)
+            if rc == "0" {
+                uploaded += 1
+            } else {
+                printErr("  failed: " + f)
+            }
+        }
+        i += 1
+    }
+    printErr("kweb: deployed " + (uploaded + "") + " files")
+}
+
+// ── Entry point ──────────────────────────────────────────────────────
+
+just run {
+    let cmd = arg("0")
+
+    if cmd == "" || cmd == "--help" || cmd == "-h" {
+        printUsage()
+        emit 0
+    }
+
+    if cmd == "init" {
+        let projectName = arg("1")
+        if projectName == "" {
+            printErr("kweb: usage: kweb init <project-name>")
+            emit 1
+        }
+        doInit(projectName)
+    } else if cmd == "build" {
+        doBuild()
+    } else if cmd == "serve" {
+        let port = arg("1")
+        if port == "" { port = "8080" }
+        doServe(port)
+    } else if cmd == "deploy" {
+        let sftpHost = arg("1")
+        let sftpUser = arg("2")
+        if sftpHost == "" || sftpUser == "" {
+            printErr("kweb: usage: kweb deploy <sftp-host> <username>")
+            printErr("kweb: get SFTP details from your hosting provider")
+            emit 1
+        }
+        doDeploy(sftpHost, sftpUser)
+    } else if cmd == "--version" || cmd == "-v" {
+        printErr("kweb 1.0.0")
+    } else {
+        printErr("kweb: unknown command: " + cmd)
+        printUsage()
+        emit 1
+    }
+}
