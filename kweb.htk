@@ -22,7 +22,12 @@ func printUsage() {
     printErr("  kweb init <name>            Create a new .htk project")
     printErr("  kweb build                  Build dist/ from export.htk")
     printErr("  kweb serve [port]           Serve dist/ locally (default: 8080)")
-    printErr("  kweb deploy <host> <user>   Deploy dist/ via SFTP")
+    printErr("  kweb deploy [host] [user]   Deploy dist/ via SFTP")
+    printErr("")
+    printErr("Environment variables (optional):")
+    printErr("  KWEB_HOST   SFTP hostname")
+    printErr("  KWEB_USER   SFTP username")
+    printErr("  KWEB_PASS   SFTP password (avoids prompt)")
     printErr("")
     printErr("https://krypton-lang.org")
 }
@@ -181,9 +186,37 @@ func doServe(port) {
     }
 }
 
-func doDeploy(sftpHost, sftpUser) {
+func doDeploy(argHost, argUser) {
+    // Priority: CLI args > env vars > prompt
+    let sftpHost = argHost
+    if len(sftpHost) == 0 { sftpHost = environ("KWEB_HOST") }
+    if len(sftpHost) == 0 {
+        printErr("kweb: no host specified and KWEB_HOST not set")
+        printErr("kweb: usage: kweb deploy <host> <user>")
+        printErr("kweb: or set KWEB_HOST, KWEB_USER, KWEB_PASS environment variables")
+        emit 1
+    }
+
+    let sftpUser = argUser
+    if len(sftpUser) == 0 { sftpUser = environ("KWEB_USER") }
+    if len(sftpUser) == 0 {
+        sftpUser = readLine("SFTP username: ")
+        if len(sftpUser) == 0 {
+            printErr("kweb: no username provided")
+            emit 1
+        }
+    }
+
+    let sftpPass = environ("KWEB_PASS")
+    let useEnvPass = "0"
+    if len(sftpPass) > 0 {
+        useEnvPass = "1"
+        printErr("kweb: using credentials from environment")
+    } else {
+        printErr("kweb: KWEB_PASS not set, curl will prompt for password")
+    }
+
     printErr("kweb: deploying dist/ to " + sftpUser + "@" + sftpHost)
-    printErr("kweb: you will be prompted for your password")
 
     let files = exec("ls dist/")
     let i = 0
@@ -193,7 +226,11 @@ func doDeploy(sftpHost, sftpUser) {
         let f = trim(getLine(files, i))
         if len(f) > 0 {
             printErr("  uploading " + f + "...")
-            let cmd = "curl -T dist/" + f + " sftp://" + sftpHost + "/public_html/" + f + " --user " + sftpUser + " --insecure -s"
+            let cmd = "curl -T dist/" + f + " ftp://" + sftpHost + "/" + f + " --user " + sftpUser
+            if useEnvPass == "1" {
+                cmd = cmd + ":" + sftpPass
+            }
+            cmd = cmd + " --insecure -s"
             let rc = shellRun(cmd)
             if rc == "0" {
                 uploaded += 1
@@ -232,11 +269,6 @@ just run {
     } else if cmd == "deploy" {
         let sftpHost = arg("1")
         let sftpUser = arg("2")
-        if sftpHost == "" || sftpUser == "" {
-            printErr("kweb: usage: kweb deploy <sftp-host> <username>")
-            printErr("kweb: get SFTP details from your hosting provider")
-            emit 1
-        }
         doDeploy(sftpHost, sftpUser)
     } else if cmd == "--version" || cmd == "-v" {
         printErr("kweb 1.0.0")
