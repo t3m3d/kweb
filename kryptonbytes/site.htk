@@ -1,0 +1,35 @@
+import "k:htmk"
+import "k:server"
+
+func css() {
+    emit htStyle("body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#222;line-height:1.6}h1{color:#7722ff}a{color:#7722ff}nav a{margin-right:16px}.card{border:1px solid #ddd;border-radius:8px;padding:20px;margin:12px 0}")
+}
+
+func nav() {
+    emit htEl("nav", htA("/", "Home") + htA("/about", "About"))
+}
+
+func page(title, content) {
+    emit htPage(title, css(), nav() + content)
+}
+
+func pageHome() {
+    emit page("kryptonbytes", htH1("Welcome to kryptonbytes") + htP("Edit site.htk to get started."))
+}
+
+func pageAbout() {
+    emit page("About", htH1("About") + htP("Built with the Krypton Web Framework."))
+}
+
+just run {
+    serverInit("8080")
+    while "1" == "1" {
+        let got = serverNext()
+        if got == "1" {
+            let path = serverReqPath()
+            if path == "/" { serverRespond(pageHome()) }
+            else if path == "/about" { serverRespond(pageAbout()) }
+            else { serverRespond404() }
+        }
+    }
+}

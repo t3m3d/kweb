@@ -1,0 +1,339 @@
+// export.htk — NO-JAVASCRIPT exploration of kryptonbytes.com
+// Same look as the JS version, achieved with pure CSS + build-time generation:
+//   - CSS starfield (white dots generated here in Krypton via box-shadow)
+//   - CSS-only rotating hero word
+//   - CSS typewriter terminal (steps())
+//   - CSS hover glow, on-load fade-up, anchor back-to-top
+// Build: kcc export.htk > out.c && gcc out.c -o export.exe -w && ./export.exe
+
+import "k:htmk"
+
+func NL()    { emit fromCharCode(10) }
+func DQ()    { emit fromCharCode(34) }
+func DASH()  { emit "&mdash;" }
+func DOT()   { emit "&middot;" }
+func ARR()   { emit "&rarr;" }
+
+let BLOG  = "https://blog.kryptonbytes.com"
+let KL    = "https://krypton-lang.org"
+let GH    = "https://github.com/t3m3d"
+let MAIL  = "mailto:brian@kryptonbytes.com"
+let TEL   = "tel:+15027958033"
+
+func cls(c)  { emit " class=" + DQ() + c + DQ() }
+func openDiv(c) { emit "<div" + cls(c) + ">" }
+func btn(href, c, label) {
+    emit "<a href=" + DQ() + href + DQ() + cls("btn " + c) + ">" + label + "</a>"
+}
+
+// ── Build-time starfield: generate box-shadow dot list ───────────────
+
+func genStars(count, seed, maxx, maxy) {
+    let s = ""
+    let i = 0
+    let st = seed
+    while i < count {
+        st = (st * 75 + 74) % 65537
+        let xx = st % maxx
+        st = (st * 75 + 74) % 65537
+        let yy = st % maxy
+        if i > 0 { s = s + "," }
+        s = s + (xx + "") + "px " + (yy + "") + "px rgba(255,255,255,0.85)"
+        i += 1
+    }
+    emit s
+}
+
+func headExtra() {
+    let favicon = "data:image/svg+xml," +
+        "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E" +
+        "%3Crect width='64' height='64' rx='14' fill='%23090912'/%3E" +
+        "%3Ctext x='32' y='46' font-size='42' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23a974ff'%3EK%3C/text%3E" +
+        "%3C/svg%3E"
+    emit "<link rel=" + DQ() + "preconnect" + DQ() + " href=" + DQ() + "https://fonts.googleapis.com" + DQ() + ">" +
+        "<link rel=" + DQ() + "preconnect" + DQ() + " href=" + DQ() + "https://fonts.gstatic.com" + DQ() + " crossorigin>" +
+        "<link href=" + DQ() + "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" + DQ() + " rel=" + DQ() + "stylesheet" + DQ() + ">" +
+        "<link rel=" + DQ() + "icon" + DQ() + " href=" + DQ() + favicon + DQ() + ">" +
+        htVoid("meta", htAttr("name", "description") + htAttr("content", "KryptonBytes - a Louisville, KY technology services company. Cybersecurity, pentesting, data recovery, hardware & software repair, custom builds, and consulting.")) +
+        htVoid("meta", htAttr("name", "theme-color") + htAttr("content", "#050509")) +
+        htVoid("meta", htAttr("name", "generator") + htAttr("content", "Krypton (kweb) - no-JS build"))
+}
+
+func siteCSS() {
+    let stars = genStars(95, 7919, 1900, 2000)
+    emit htStyle(
+        ":root{--bg:#050509;--bg-soft:#0a0a12;--surface:rgba(255,255,255,0.035);--surface-2:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.09);--violet:#7722ff;--violet-light:#a974ff;--blue:#4d7cff;--magenta:#c81cff;--green:#3ddc84;--text:#f5f5fb;--muted:#9a9ab2;--muted-2:#6a6a82;--radius:18px;--grad:linear-gradient(120deg,#a974ff,#4d7cff 55%,#c81cff)}" +
+        "*{box-sizing:border-box;margin:0;padding:0}" +
+        "html{scroll-behavior:smooth}" +
+        "body{font-family:'Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased}" +
+        // layered background (all CSS)
+        ".mesh{position:fixed;inset:0;z-index:-4;overflow:hidden;background:var(--bg)}" +
+        ".mesh::before,.mesh::after{content:'';position:absolute;width:60vw;height:60vw;border-radius:50%;filter:blur(120px);opacity:0.5;animation:drift 24s ease-in-out infinite}" +
+        ".mesh::before{background:radial-gradient(circle,rgba(119,34,255,0.55),transparent 65%);top:-15%;left:-10%}" +
+        ".mesh::after{background:radial-gradient(circle,rgba(77,124,255,0.45),transparent 65%);bottom:-20%;right:-10%;animation-delay:-12s}" +
+        // CSS starfield (white particles) — generated at build time
+        ".stars,.stars::after{position:fixed;top:0;left:0;width:2px;height:2px;border-radius:50%;background:transparent;box-shadow:" + stars + "}" +
+        ".stars{z-index:-3;animation:starscroll 90s linear infinite}" +
+        ".stars::after{content:'';top:2000px}" +
+        ".grain{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:0.035;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")}" +
+        "@keyframes drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(8vw,5vh) scale(1.15)}66%{transform:translate(-6vw,-4vh) scale(0.9)}}" +
+        "@keyframes starscroll{from{transform:translateY(0)}to{transform:translateY(-2000px)}}" +
+        "@keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}" +
+        "@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}" +
+        "@keyframes rotw{0%{opacity:0;transform:translateY(12px)}4%,21%{opacity:1;transform:translateY(0)}25%,100%{opacity:0;transform:translateY(-12px)}}" +
+        "@keyframes type{from{width:0;border-color:var(--green)}to{width:var(--w);border-color:var(--green)}}" +
+        "@keyframes typeend{to{border-color:transparent}}" +
+        "@keyframes blink{50%{border-color:transparent}}" +
+        "a{color:var(--violet-light);text-decoration:none;transition:color .2s}a:hover{color:#fff}" +
+        "::selection{background:rgba(119,34,255,0.4);color:#fff}" +
+        "nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(18px);background:rgba(5,5,9,0.6);border-bottom:1px solid var(--border)}" +
+        "nav .wrap{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 24px}" +
+        "nav .logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';color:#fff;font-size:1.25rem;font-weight:700;letter-spacing:-.5px}" +
+        "nav .logo .mark{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;font-weight:700;color:#fff;box-shadow:0 4px 16px rgba(119,34,255,0.5)}" +
+        "nav .links{display:flex;align-items:center;gap:26px}" +
+        "nav .links a{color:var(--muted);font-size:.92rem;font-weight:500;position:relative}" +
+        "nav .links a:hover{color:#fff}" +
+        "nav .links a.blog::before{content:'';position:absolute;left:-12px;top:50%;width:5px;height:5px;border-radius:50%;background:var(--violet-light);transform:translateY(-50%);box-shadow:0 0 8px var(--violet-light)}" +
+        "nav .cta{background:var(--surface-2);border:1px solid var(--border);padding:9px 18px;border-radius:10px;color:#fff;font-weight:600;font-size:.9rem;transition:border-color .2s,background .2s}" +
+        "nav .cta:hover{border-color:var(--violet);background:rgba(119,34,255,0.15)}" +
+        ".wrap{max-width:1180px;margin:0 auto;padding:0 24px}" +
+        "section{padding:88px 0;position:relative}" +
+        ".eyebrow{font-family:'Space Grotesk';text-transform:uppercase;letter-spacing:.22em;font-size:.74rem;font-weight:600;color:var(--violet-light);margin-bottom:14px}" +
+        "h1,h2,h3{font-family:'Space Grotesk';font-weight:700;letter-spacing:-.02em;line-height:1.1}" +
+        "h2{font-size:2.5rem;margin-bottom:14px}h3{font-size:1.18rem;margin-bottom:8px;color:#fff}" +
+        ".gradtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}" +
+        ".muted{color:var(--muted)}.lead{color:var(--muted);font-size:1.12rem;max-width:640px}" +
+        ".hero{padding:120px 0 70px;display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center}" +
+        ".badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:7px 15px;border-radius:30px;font-size:.82rem;color:var(--muted);margin-bottom:26px}" +
+        ".badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}" +
+        ".hero h1{font-size:3.9rem;margin-bottom:22px}" +
+        ".rotator{display:inline-block;position:relative;min-width:9ch;height:1.05em;vertical-align:bottom}" +
+        ".rotator span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0;animation:rotw 8s infinite}" +
+        ".rotator span:nth-child(1){animation-delay:0s}.rotator span:nth-child(2){animation-delay:2s}.rotator span:nth-child(3){animation-delay:4s}.rotator span:nth-child(4){animation-delay:6s}" +
+        ".hero .actions{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap}" +
+        ".btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:12px;font-weight:600;font-size:1rem;transition:transform .2s,box-shadow .2s,border-color .2s,background .2s;cursor:pointer}" +
+        ".btn:hover{transform:translateY(-2px)}" +
+        ".btn.primary{background:var(--grad);color:#fff;box-shadow:0 10px 30px rgba(119,34,255,0.45)}" +
+        ".btn.primary:hover{box-shadow:0 16px 40px rgba(119,34,255,0.6)}" +
+        ".btn.ghost{background:var(--surface);border:1px solid var(--border);color:#fff}" +
+        ".btn.ghost:hover{border-color:var(--violet);background:rgba(119,34,255,0.12)}" +
+        // code/terminal window
+        ".window{background:rgba(8,8,14,0.92);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6);backdrop-filter:blur(8px);animation:fadeUp .9s ease .2s both}" +
+        ".window .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)}" +
+        ".window .bar .d{width:12px;height:12px;border-radius:50%}" +
+        ".window .bar .d.r{background:#ff5f57}.window .bar .d.y{background:#febc2e}.window .bar .d.g{background:#28c840}" +
+        ".window .bar .fn{margin-left:10px;color:var(--muted-2);font-family:'JetBrains Mono';font-size:.78rem}" +
+        ".term{padding:22px;font-family:'JetBrains Mono';font-size:.84rem;line-height:1.75;color:#cdd6f4;min-height:215px}" +
+        ".term .ln{display:block;width:0;max-width:100%;overflow:hidden;white-space:nowrap;border-right:2px solid transparent}" +
+        ".prompt{color:var(--green);font-weight:500}.fn2{color:#89b4fa}.str{color:var(--green)}.cm{color:#6c7086}.num{color:#fab387}" +
+        ".marquee{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);padding:20px 0;overflow:hidden;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}" +
+        ".marquee .track{display:inline-flex;gap:46px;animation:marquee 30s linear infinite}" +
+        ".marquee span{font-family:'Space Grotesk';font-weight:600;font-size:1.05rem;color:var(--muted-2);display:inline-flex;align-items:center;gap:46px}" +
+        ".marquee b{color:var(--violet-light);font-weight:700}" +
+        ".bento{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:42px}" +
+        ".tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;position:relative;overflow:hidden;transition:transform .25s,border-color .25s,background .25s;backdrop-filter:blur(6px);animation:fadeUp .7s ease both}" +
+        ".tile:hover{transform:translateY(-5px);border-color:rgba(119,34,255,0.5);background:var(--surface-2)}" +
+        ".tile .glow{position:absolute;left:50%;top:42%;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(119,34,255,0.3),transparent 65%);pointer-events:none;transform:translate(-50%,-50%);opacity:0;transition:opacity .35s}" +
+        ".tile:hover .glow{opacity:1}" +
+        ".tile .ico{width:46px;height:46px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;font-size:1.4rem;margin-bottom:16px;position:relative}" +
+        ".tile h3,.tile p{position:relative}.tile p{color:var(--muted);font-size:.96rem}" +
+        ".tile.wide{grid-column:span 2}" +
+        ".tile .meta{margin-top:16px;font-family:'JetBrains Mono';font-size:.78rem;color:var(--muted-2);position:relative}" +
+        ".methods{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:38px}" +
+        ".method{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px;text-align:center;backdrop-filter:blur(6px);animation:fadeUp .7s ease both}" +
+        ".method .ico{font-size:1.8rem;margin-bottom:10px}" +
+        ".quote{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:30px;backdrop-filter:blur(6px);position:relative;animation:fadeUp .7s ease both}" +
+        ".quote .mk{font-family:'Space Grotesk';font-size:3rem;line-height:.4;color:var(--violet-light);opacity:.55}" +
+        ".quote .q{color:var(--text);font-size:1.02rem;margin:8px 0 16px}" +
+        ".quote .who{font-family:'Space Grotesk';font-weight:600;color:var(--violet-light)}" +
+        ".feat{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-top:40px}" +
+        ".feat ul{list-style:none;margin-top:18px}" +
+        ".feat li{padding:10px 0 10px 30px;position:relative;color:var(--muted)}" +
+        ".feat li::before{content:'';position:absolute;left:0;top:17px;width:14px;height:14px;border-radius:4px;background:var(--grad);box-shadow:0 0 12px rgba(119,34,255,0.6)}" +
+        ".feat li b{color:#fff;font-weight:600}" +
+        ".blogcta{position:relative;border:1px solid var(--border);border-radius:24px;padding:64px 32px;text-align:center;overflow:hidden;background:linear-gradient(135deg,rgba(119,34,255,0.16),rgba(77,124,255,0.10))}" +
+        ".blogcta::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 120%,rgba(200,28,255,0.25),transparent 60%);pointer-events:none}" +
+        ".blogcta>*{position:relative}.blogcta h2{font-size:2.3rem}" +
+        "footer{border-top:1px solid var(--border);background:rgba(5,5,9,0.7);backdrop-filter:blur(10px);padding:56px 0 30px}" +
+        "footer .cols{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:34px}" +
+        "footer h4{font-family:'Space Grotesk';font-size:.8rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted-2);margin-bottom:14px}" +
+        "footer a{display:block;color:var(--muted);font-size:.94rem;padding:5px 0}footer a:hover{color:#fff}" +
+        "footer .brand{font-family:'Space Grotesk';font-size:1.3rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:10px;margin-bottom:12px}" +
+        "footer .brand .mark{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;color:#fff;font-weight:700}" +
+        "footer .bottom{border-top:1px solid var(--border);margin-top:38px;padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--muted-2);font-size:.85rem}" +
+        ".topbtn{position:fixed;bottom:26px;right:26px;width:48px;height:48px;border-radius:14px;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:1.3rem;z-index:99;box-shadow:0 8px 24px rgba(119,34,255,0.5);transition:transform .2s}.topbtn:hover{transform:translateY(-3px);color:#fff}" +
+        ".nojs-flag{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.5);color:var(--green);font-family:'JetBrains Mono';font-size:.74rem;padding:5px 14px;border-radius:20px}" +
+        "@media(max-width:920px){.hero{grid-template-columns:1fr;gap:38px}.hero h1{font-size:3rem}.bento{grid-template-columns:1fr 1fr}.tile.wide{grid-column:span 2}.feat{grid-template-columns:1fr}.methods{grid-template-columns:1fr}footer .cols{grid-template-columns:1fr 1fr}}" +
+        "@media(max-width:560px){.hero h1{font-size:2.4rem}h2{font-size:2rem}.bento{grid-template-columns:1fr}.tile.wide{grid-column:span 1}nav .links a:not(.blog):not(.cta){display:none}}"
+    )
+}
+
+func siteNav() {
+    emit "<nav><div class=" + DQ() + "wrap" + DQ() + ">" +
+         "<a href=" + DQ() + "/" + DQ() + cls("logo") + "><span class=" + DQ() + "mark" + DQ() + ">K</span>KryptonBytes</a>" +
+         openDiv("links") +
+         htA("/", "Home") +
+         htA("/services.html", "Services") +
+         htA("/pwnagotchi.html", "Pwnagotchi") +
+         htA("/about.html", "About") +
+         htAA(htHref(BLOG) + htClass("blog"), "Blog") +
+         "<a href=" + DQ() + "/contact.html" + DQ() + cls("cta") + ">Get a Quote</a>" +
+         "</div></div></nav>"
+}
+
+func footMark() { emit "<span class=" + DQ() + "mark" + DQ() + ">K</span>" }
+
+func siteFooter() {
+    emit "<footer><div class=" + DQ() + "wrap" + DQ() + ">" +
+         openDiv("cols") +
+         "<div><div class=" + DQ() + "brand" + DQ() + ">" + footMark() + "KryptonBytes</div>" +
+         "<p class=" + DQ() + "muted" + DQ() + " style=" + DQ() + "max-width:320px;font-size:.94rem" + DQ() + ">Technology services in Louisville, Kentucky &mdash; cybersecurity, repair, data recovery, custom builds, and consulting.</p>" +
+         "<p style=" + DQ() + "margin-top:12px" + DQ() + ">" + htA(TEL, "502-795-8033") + " " + DOT() + " " + htA(MAIL, "brian@kryptonbytes.com") + "</p></div>" +
+         "<div><h4>Services</h4>" + htA("/services.html", "All Services") + htA("/services.html", "Cybersecurity") + htA("/services.html", "Repair &amp; Recovery") + htA("/pwnagotchi.html", "Pwnagotchi") + "</div>" +
+         "<div><h4>Company</h4>" + htA("/about.html", "About") + htA("/contact.html", "Contact") + htA(BLOG, "Blog") + "</div>" +
+         "<div><h4>Projects</h4>" + htA(KL, "Krypton Language") + htA(GH, "GitHub") + "</div>" +
+         "</div>" +
+         "<div class=" + DQ() + "bottom" + DQ() + "><span>&copy; KryptonBytes " + DOT() + " Louisville, KY. All rights reserved.</span><span>No-JS build " + DOT() + " Krypton kweb</span></div>" +
+         "</div></footer>" +
+         "<a href=" + DQ() + "#top" + DQ() + cls("topbtn") + ">" + fromCharCode(8593) + "</a>"
+}
+
+func sitePage(title, content) {
+    emit "<!-- KryptonBytes | NO-JS build | Krypton (kweb) -->" + fromCharCode(10) +
+        htPage("KryptonBytes - " + title,
+        siteCSS() + headExtra(),
+        "<span id=" + DQ() + "top" + DQ() + "></span>" +
+        "<div class=" + DQ() + "mesh" + DQ() + "></div><div class=" + DQ() + "stars" + DQ() + "></div><div class=" + DQ() + "grain" + DQ() + "></div>" +
+        "<div class=" + DQ() + "nojs-flag" + DQ() + ">no-javascript build</div>" +
+        siteNav() + content + siteFooter()
+    )
+}
+
+func tile(extra, ico, title, body, meta) {
+    let m = ""
+    if len(meta) > 0 { m = "<div class=" + DQ() + "meta" + DQ() + ">" + meta + "</div>" }
+    emit "<div class=" + DQ() + "tile " + extra + DQ() + "><div class=" + DQ() + "glow" + DQ() + "></div><div class=" + DQ() + "ico" + DQ() + ">" + ico + "</div>" +
+         htH3(title) + htP(body) + m + "</div>"
+}
+
+func method(ico, title, body) {
+    emit "<div class=" + DQ() + "method" + DQ() + "><div class=" + DQ() + "ico" + DQ() + ">" + ico + "</div>" + htH3(title) + "<p class=" + DQ() + "muted" + DQ() + ">" + body + "</p></div>"
+}
+
+func quote(text, who) {
+    emit "<div class=" + DQ() + "quote" + DQ() + "><div class=" + DQ() + "mk" + DQ() + ">&ldquo;</div>" +
+         "<p class=" + DQ() + "q" + DQ() + ">" + text + "</p><div class=" + DQ() + "who" + DQ() + ">" + who + "</div></div>"
+}
+
+func sectionHead(eyebrow, title, lead) {
+    emit "<div class=" + DQ() + "eyebrow" + DQ() + ">" + eyebrow + "</div>" + htH2(title) +
+         "<p class=" + DQ() + "lead" + DQ() + ">" + lead + "</p>"
+}
+
+// CSS typewriter line: content, width(ch), animation value
+func termLn(content, w, anim) {
+    emit "<span class=" + DQ() + "ln" + DQ() + " style=" + DQ() + "--w:" + w + ";animation:" + anim + DQ() + ">" + content + "</span>"
+}
+
+func blogCTA() {
+    emit "<section><div class=" + DQ() + "wrap" + DQ() + "><div class=" + DQ() + "blogcta" + DQ() + ">" +
+         "<div class=" + DQ() + "eyebrow" + DQ() + ">From the blog</div>" +
+         "<h2 class=" + DQ() + "gradtext" + DQ() + ">Security notes &amp; how-tos</h2>" +
+         "<p class=" + DQ() + "lead" + DQ() + " style=" + DQ() + "margin:0 auto 28px" + DQ() + ">Practical write-ups on hardening, repair, data recovery, and the tools we use day to day.</p>" +
+         btn(BLOG, "primary", "Read the Blog " + ARR()) +
+         "</div></div></section>"
+}
+
+func contactCTA() {
+    emit "<section><div class=" + DQ() + "wrap" + DQ() + "><div class=" + DQ() + "blogcta" + DQ() + ">" +
+         "<div class=" + DQ() + "eyebrow" + DQ() + ">Get started</div>" +
+         "<h2 class=" + DQ() + "gradtext" + DQ() + ">Need it secured, fixed, or recovered?</h2>" +
+         "<p class=" + DQ() + "lead" + DQ() + " style=" + DQ() + "margin:0 auto 28px" + DQ() + ">Phone, housecall, or in-office. Tell us what you need and we'll quote it.</p>" +
+         "<div style=" + DQ() + "display:flex;gap:14px;justify-content:center;flex-wrap:wrap" + DQ() + ">" +
+         btn(MAIL, "primary", "Email us " + ARR()) + btn(TEL, "ghost", "Call 502-795-8033") +
+         "</div></div></div></section>"
+}
+
+func pageHome() {
+    let prompt = "<span class=" + DQ() + "prompt" + DQ() + ">$</span>"
+    let plus = "<span class=" + DQ() + "fn2" + DQ() + ">[+]</span>"
+    let ok = "<span class=" + DQ() + "str" + DQ() + ">[ok]</span>"
+
+    let term = "<div class=" + DQ() + "term" + DQ() + ">" +
+        termLn(prompt + " kb-secure --audit client-network", "34ch", "type .9s steps(34,end) .2s forwards,typeend .01s linear 1.1s forwards") +
+        termLn(plus + " scanning hosts and open ports", "33ch", "type .85s steps(33,end) 1.15s forwards,typeend .01s linear 2s forwards") +
+        termLn(plus + " hardening web server + firewall", "35ch", "type .9s steps(35,end) 2.05s forwards,typeend .01s linear 2.95s forwards") +
+        termLn(plus + " enabling WPA3, patching 3 CVEs", "34ch", "type .9s steps(34,end) 3s forwards,typeend .01s linear 3.9s forwards") +
+        termLn(ok + " network secured", "20ch", "type .55s steps(20,end) 3.95s forwards,typeend .01s linear 4.5s forwards") +
+        termLn(ok + " 0 intrusions in 6 months", "29ch", "type .8s steps(29,end) 4.55s forwards,blink 1s step-end 5.35s infinite") +
+        "</div>"
+
+    let hero = "<div class=" + DQ() + "wrap" + DQ() + "><div class=" + DQ() + "hero" + DQ() + ">" +
+        "<div><div class=" + DQ() + "badge" + DQ() + "><span class=" + DQ() + "dot" + DQ() + "></span>Louisville, KY " + DOT() + " Technology Services</div>" +
+        htH1("Your technology, <span class=" + DQ() + "gradtext" + DQ() + "><span class=" + DQ() + "rotator" + DQ() + ">" +
+            "<span>secured</span><span>recovered</span><span>repaired</span><span>rebuilt</span>" +
+            "</span></span>") +
+        "<p class=" + DQ() + "lead" + DQ() + ">KryptonBytes is a Louisville, Kentucky technology services company &mdash; cybersecurity and pentesting, data recovery, hardware &amp; software repair, custom PC builds, and consulting.</p>" +
+        "<div class=" + DQ() + "actions" + DQ() + ">" +
+        btn("/contact.html", "primary", "Get a Quote " + ARR()) +
+        btn(TEL, "ghost", "Call 502-795-8033") +
+        "</div></div>" +
+        "<div class=" + DQ() + "window" + DQ() + "><div class=" + DQ() + "bar" + DQ() + ">" +
+        "<span class=" + DQ() + "d r" + DQ() + "></span><span class=" + DQ() + "d y" + DQ() + "></span><span class=" + DQ() + "d g" + DQ() + "></span>" +
+        "<span class=" + DQ() + "fn" + DQ() + ">kryptonbytes@secure</span></div>" + term + "</div>" +
+        "</div></div>"
+
+    let marquee = "<div class=" + DQ() + "marquee" + DQ() + "><div class=" + DQ() + "track" + DQ() + ">" +
+        "<span><b>Cybersecurity</b>&middot;Data Recovery&middot;Custom PC Builds&middot;Network Security&middot;Soldering&middot;Pentesting&middot;Consulting&middot;Pwnagotchi&middot;</span>" +
+        "<span><b>Cybersecurity</b>&middot;Data Recovery&middot;Custom PC Builds&middot;Network Security&middot;Soldering&middot;Pentesting&middot;Consulting&middot;Pwnagotchi&middot;</span>" +
+        "</div></div>"
+
+    let services = "<section><div class=" + DQ() + "wrap" + DQ() + ">" +
+        sectionHead("What we do", "Services built on trust", "From locking down a network to recovering a dead drive or building a machine from scratch &mdash; one team, end to end.") +
+        "<div class=" + DQ() + "bento" + DQ() + ">" +
+        tile("wide", "&#128274;", "Cybersecurity &amp; Pentesting", "Network and web-server hardening, vulnerability assessment, intrusion response, and security consulting. We've kept client servers attack-free for 6+ months.", "hardening " + DOT() + " pentesting " + DOT() + " response") +
+        tile("", "&#128190;", "Data Recovery", "Recover data from inaccessible or failing devices &mdash; drives, phones, and media.", "drives " + DOT() + " phones " + DOT() + " media") +
+        tile("", "&#128295;", "Repair &amp; Soldering", "Hardware and software troubleshooting, plus component-level soldering and repair.", "diagnostics " + DOT() + " soldering") +
+        tile("wide", "&#128421;", "Custom Builds &amp; Networks", "Custom PC builds, hardware/software setup, and network design &amp; implementation with a cybersecurity focus.", "builds " + DOT() + " setup " + DOT() + " networks") +
+        tile("", "&#128172;", "Consulting", "Technology consulting that has saved clients hundreds of dollars each month.", "strategy " + DOT() + " support") +
+        tile("", "&#128196;", "Data &amp; Docs", "Data entry, technical specs, user manuals &mdash; even resumes &amp; cover letters. Windows, Mac, Unix &amp; Linux.", "Win " + DOT() + " Mac " + DOT() + " Linux " + DOT() + " Unix") +
+        "</div></div></section>"
+
+    let methods = "<section style=" + DQ() + "padding-top:0" + DQ() + "><div class=" + DQ() + "wrap" + DQ() + ">" +
+        sectionHead("How we work", "Three ways to get help", "Whatever's easiest for you.") +
+        "<div class=" + DQ() + "methods" + DQ() + ">" +
+        method("&#128222;", "Phone", "Remote diagnosis and support over the phone.") +
+        method("&#127968;", "Housecall", "We come to you, anywhere in the Louisville area.") +
+        method("&#127970;", "In-office", "Drop it off and we'll handle it at the shop.") +
+        "</div></div></section>"
+
+    let pwn = "<section><div class=" + DQ() + "wrap" + DQ() + ">" +
+        "<div class=" + DQ() + "feat" + DQ() + ">" +
+        "<div><div class=" + DQ() + "eyebrow" + DQ() + ">Featured build</div>" + htH2("The Pwnagotchi") +
+        "<p class=" + DQ() + "muted" + DQ() + ">An AI-powered Wi-Fi companion that learns from its environment and captures WPA/WPA2 handshakes for <b>legal, authorized security testing</b>. Built on a Raspberry Pi Zero 2 W with an E-Ink display.</p>" +
+        "<div style=" + DQ() + "margin-top:22px" + DQ() + ">" + btn("/pwnagotchi.html", "primary", "See the Pwnagotchi " + ARR()) + "</div></div>" +
+        "<div class=" + DQ() + "window" + DQ() + "><div class=" + DQ() + "bar" + DQ() + "><span class=" + DQ() + "d r" + DQ() + "></span><span class=" + DQ() + "d y" + DQ() + "></span><span class=" + DQ() + "d g" + DQ() + "></span><span class=" + DQ() + "fn" + DQ() + ">pwnagotchi</span></div>" +
+        "<div class=" + DQ() + "term" + DQ() + " style=" + DQ() + "min-height:auto" + DQ() + "><span class=" + DQ() + "str" + DQ() + ">(^_^)</span>  handshakes captured<br><span class=" + DQ() + "cm" + DQ() + ">RL model:</span> optimizing<br><span class=" + DQ() + "cm" + DQ() + ">display :</span> E-Ink Waveshare v4<br><span class=" + DQ() + "cm" + DQ() + ">host    :</span> Pi Zero 2 W<br><span class=" + DQ() + "fn2" + DQ() + ">status  :</span> happy</div></div>" +
+        "</div></div></section>"
+
+    let testi = "<section style=" + DQ() + "padding-top:0" + DQ() + "><div class=" + DQ() + "wrap" + DQ() + ">" +
+        sectionHead("Clients", "What people say", "Real results for real people.") +
+        "<div class=" + DQ() + "bento" + DQ() + ">" +
+        quote("Brian was able to help me with my phone's security and installed a privacy version of Android.", "Billy B.") +
+        quote("He did a great job securing my webserver &mdash; no more attacks in 6 months.", "Tim Forrest") +
+        quote("Brian was able to secure my network that was being hacked.", "Jonas S.") +
+        "</div></div></section>"
+
+    emit sitePage("Home", hero + marquee + services + methods + pwn + testi + blogCTA() + contactCTA())
+}
+
+func writePage(path, html) {
+    writeFile(path, html)
+    printErr("wrote " + path)
+}
+
+just run {
+    let dist = "dist"
+    writePage(dist + "/index.html", pageHome())
+    printErr("done: no-JS index in " + dist + "/")
+}

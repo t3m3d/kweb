@@ -218,29 +218,57 @@ func doDeploy(argHost, argUser) {
 
     printErr("kweb: deploying dist/ to " + sftpUser + "@" + sftpHost)
 
-    let files = exec("ls dist/")
+    // Shared curl auth + flags suffix
+    let auth = " --user " + sftpUser
+    if useEnvPass == "1" { auth = auth + ":" + sftpPass }
+    let flags = " --insecure -s"
+
+    let uploaded = 0
+
+    // 1) Top-level files. "ls -Ap" includes dotfiles (e.g. .htaccess) and
+    //    marks directories with a trailing "/" so we can skip them here.
+    let files = exec("ls -Ap dist/")
     let i = 0
     let n = lineCount(files)
-    let uploaded = 0
     while i < n {
         let f = trim(getLine(files, i))
         if len(f) > 0 {
-            printErr("  uploading " + f + "...")
-            let cmd = "curl -T dist/" + f + " ftp://" + sftpHost + "/" + f + " --user " + sftpUser
-            if useEnvPass == "1" {
-                cmd = cmd + ":" + sftpPass
-            }
-            cmd = cmd + " --insecure -s"
-            let rc = shellRun(cmd)
-            if rc == "0" {
-                uploaded += 1
-            } else {
-                printErr("  failed: " + f)
+            let L = len(f)
+            if f[L - 1] != "/" {
+                printErr("  uploading " + f + "...")
+                let cmd = "curl -T dist/" + f + " ftp://" + sftpHost + "/" + f + auth + flags
+                let rc = shellRun(cmd)
+                if rc == "0" {
+                    uploaded += 1
+                } else {
+                    printErr("  failed: " + f)
+                }
             }
         }
         i += 1
     }
-    printErr("kweb: deployed " + (uploaded + "") + " files")
+
+    // 2) assets/ subfolder. "--ftp-create-dirs" makes the remote assets/
+    //    directory if it does not already exist.
+    let afiles = exec("ls dist/assets/")
+    let ai = 0
+    let an = lineCount(afiles)
+    while ai < an {
+        let af = trim(getLine(afiles, ai))
+        if len(af) > 0 {
+            printErr("  uploading assets/" + af + "...")
+            let cmd = "curl -T dist/assets/" + af + " ftp://" + sftpHost + "/assets/" + af + " --ftp-create-dirs" + auth + flags
+            let rc = shellRun(cmd)
+            if rc == "0" {
+                uploaded += 1
+            } else {
+                printErr("  failed: assets/" + af)
+            }
+        }
+        ai += 1
+    }
+
+    printErr("kweb: deployed " + (uploaded + "") + " files (incl. .htaccess + assets/)")
 }
 
 // ── Entry point ──────────────────────────────────────────────────────

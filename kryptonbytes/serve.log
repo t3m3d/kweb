@@ -1,0 +1,2 @@
+kweb: serving dist/ on http://127.0.0.1:8080
+kweb: press Ctrl+C to stop
