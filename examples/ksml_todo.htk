@@ -146,19 +146,6 @@ func page() {
     emit htPage("KSML Todo", css + ksmlRuntime(), body)
 }
 
-// crude form-body parse: "text=do+the+thing" -> "do the thing"
-func formValue(body, key) {
-    let needle = key + "="
-    let p = indexOf(body, needle)
-    if p < 0 { emit "" }
-    let rest = substring(body, p + len(needle), len(body))
-    let amp = indexOf(rest, "&")
-    let raw = rest
-    if amp >= 0 { raw = substring(rest, 0, amp) }
-    // decode + -> space (full urldecode is a stdlib job; spaces cover the demo)
-    emit replace(raw, "+", " ")
-}
-
 // route "/toggle/3" -> 3
 func pathIdx(path, prefix) {
     let rest = substring(path, len(prefix), len(path))
@@ -173,7 +160,7 @@ just run {
         if got == "1" {
             let path = serverReqPath()
             if path == "/add" {
-                let text = formValue(serverReqBody(), "text")
+                let text = serverFormValue("text")
                 todos = todoAdd(text)
                 serverRespond(todoList())
             } else if startsWith(path, "/toggle/") {

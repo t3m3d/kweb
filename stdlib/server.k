@@ -411,3 +411,11 @@ func queryParamAll(qs, key) {
     }
     emit out
 }
+
+// ── Request-value convenience ──────────────────────────────────────────────
+// One-call accessors that read the current request and pull a single param,
+// urldecoded. serverFormValue reads the POST body (application/x-www-form-
+// urlencoded); serverQueryValue reads the URL query string.
+
+func serverFormValue(key)  { emit queryParam(_srvBody(),  key) }
+func serverQueryValue(key) { emit queryParam(_srvQuery(), key) }
