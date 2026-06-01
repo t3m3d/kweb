@@ -15,18 +15,13 @@
 import "k:htmk"
 import "k:ksml"
 import "k:server"
+import "k:krouter"
 
 let todos = ""   // newline list of "done\ttext"
 let nextId = 0
 
 func TAB() { emit fromCharCode(9) }
 func NL()  { emit fromCharCode(10) }
-
-func startsWith(s, prefix) {
-    if len(s) < len(prefix) { emit 0 }
-    if substring(s, 0, len(prefix)) == prefix { emit 1 }
-    emit 0
-}
 
 // ── state helpers ────────────────────────────────────────────────────
 func todoAdd(text) {
@@ -146,28 +141,22 @@ func page() {
     emit htPage("KSML Todo", css + ksmlRuntime(), body)
 }
 
-// route "/toggle/3" -> 3
-func pathIdx(path, prefix) {
-    let rest = substring(path, len(prefix), len(path))
-    emit toInt(rest)
-}
-
 just run {
     serverInit("8080")
     kp("KSML todo on http://localhost:8080")
     while "1" == "1" {
         let got = serverNext()
         if got == "1" {
-            let path = serverReqPath()
-            if path == "/add" {
-                let text = serverFormValue("text")
-                todos = todoAdd(text)
+            let m = serverReqMethod()
+            let p = serverReqPath()
+            if routeIs(m, p, "POST", "/add") {
+                todos = todoAdd(serverFormValue("text"))
                 serverRespond(todoList())
-            } else if startsWith(path, "/toggle/") {
-                todos = todoToggle(pathIdx(path, "/toggle/"))
+            } else if routeIs(m, p, "POST", "/toggle/:id") {
+                todos = todoToggle(toInt(routeParam("/toggle/:id", p, "id")))
                 serverRespond(todoList())
-            } else if startsWith(path, "/delete/") {
-                todos = todoDelete(pathIdx(path, "/delete/"))
+            } else if routeIs(m, p, "POST", "/delete/:id") {
+                todos = todoDelete(toInt(routeParam("/delete/:id", p, "id")))
                 serverRespond(todoList())
             } else {
                 serverRespond(page())
