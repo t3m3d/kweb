@@ -1,0 +1,164 @@
+// examples/ksml_showcase.htk — the krypton-lang.org KSML showcase page.
+//
+// A single self-contained page demonstrating live, server-driven interactivity
+// in pure Krypton via KSML — built to drop into the krypton-lang.org server
+// (site.htk). Two live widgets, no hand-written JavaScript:
+//   1. A counter (POST round-trip + swap)
+//   2. Live filter over the stdlib module list (debounced GET + swap)
+//
+// To wire into site.htk:
+//   - copy stdlib/ksml.k into the krypton repo's stdlib/
+//   - add `import "k:ksml"` to site.htk
+//   - add the routes from the `just run` block below into site.htk's dispatch
+//   - call showcasePage() from a "/playground-live" (or similar) route
+//
+// Run standalone to preview:
+//   KRYPTON_ROOT=. kcc examples/ksml_showcase.htk -o showcase && ./showcase
+
+import "k:htmk"
+import "k:ksml"
+import "k:server"
+
+let hits = 0
+
+func NL() { emit fromCharCode(10) }
+
+func lower(s) {
+    let out = ""
+    let i = 0
+    while i < len(s) {
+        let c = s[i]
+        let v = toInt(charCode(c))
+        if v >= 65 { if v <= 90 { c = fromCharCode(v + 32) } }
+        out = out + c
+        i += 1
+    }
+    emit out
+}
+func ciHas(hay, needle) {
+    if len(needle) == 0 { emit 1 }
+    if indexOf(lower(hay), lower(needle)) >= 0 { emit 1 }
+    emit 0
+}
+
+// A few real Krypton stdlib modules, for the live-filter widget.
+func modules() {
+    emit "htmk|server-side HTML DSL" + NL() +
+         "ksml|hypermedia attributes (KSML)" + NL() +
+         "kcss|CSS DSL" + NL() +
+         "ks|client-side JS DSL" + NL() +
+         "server|HTTP server" + NL() +
+         "krouter|path router" + NL() +
+         "fs|filesystem helpers" + NL() +
+         "http|HTTP client" + NL() +
+         "json|JSON encode/decode" + NL() +
+         "math_utils|math helpers"
+}
+
+func moduleRows(q) {
+    let rows = modules()
+    let n = lineCount(rows)
+    let out = ""
+    let found = 0
+    let i = 0
+    while i < n {
+        let row = getLine(rows, i)
+        if len(row) > 0 {
+            let bar = indexOf(row, "|")
+            let name = substring(row, 0, bar)
+            let desc = substring(row, bar + 1, len(row))
+            if ciHas(name + " " + desc, q) == 1 {
+                out = out + htLiA(htClass("mod"),
+                    htCode("k:" + name) + htSpanA(htClass("desc"), desc))
+                found += 1
+            }
+        }
+        i += 1
+    }
+    if found == 0 { out = htLiA(htClass("none"), "No module matches " + htEm(q)) }
+    emit htUlA(htId("mods"), out)
+}
+
+func counterFragment() { emit hits + "" }
+
+// The showcase content (drop into a krypton-lang.org page wrapper).
+func showcaseContent() {
+    let css = htStyle(
+        ".ksml-demo{max-width:680px;margin:0 auto}" +
+        ".ksml-demo h2{color:#5d16da;margin-top:36px}" +
+        ".ksml-card{background:#faf8ff;border:1px solid #e6e0ff;border-radius:12px;padding:24px;margin:16px 0}" +
+        ".bigcount{font-size:3rem;font-weight:800;color:#222;text-align:center;margin:8px 0}" +
+        ".ksml-demo button{padding:10px 20px;margin:0 4px;border:none;border-radius:8px;" +
+            "background:#7722ff;color:#fff;cursor:pointer;font-size:1rem}" +
+        ".ksml-demo button:hover{background:#5d16da}" +
+        ".ksml-demo .row-btns{text-align:center}" +
+        ".ksml-demo input{width:100%;padding:11px 14px;border:1px solid #ccc;border-radius:8px;" +
+            "font-size:1rem;box-sizing:border-box}" +
+        ".ksml-demo ul{list-style:none;padding:0;margin-top:14px}" +
+        ".ksml-demo li.mod{display:flex;justify-content:space-between;align-items:center;" +
+            "padding:10px 14px;border:1px solid #eee;border-radius:8px;margin:6px 0;background:#fff}" +
+        ".ksml-demo li.mod code{background:#f0edff;color:#5d16da;padding:2px 8px;border-radius:4px}" +
+        ".ksml-demo .desc{color:#888;font-size:0.9rem}" +
+        ".ksml-demo li.none{color:#999;text-align:center;padding:12px}" +
+        ".badge{display:inline-block;background:#7722ff;color:#fff;padding:3px 12px;border-radius:999px;" +
+            "font-size:0.8rem;font-weight:600;margin-bottom:8px}"
+    )
+
+    let counter =
+        htDivA(htClass("ksml-card"),
+            htDivA(htClass("bigcount") + htId("count"), counterFragment()) +
+            htDivA(htClass("row-btns"),
+                htButtonA(ksmlPostInto("/ksml/dec", "#count"), "-1") +
+                htButtonA(ksmlPostInto("/ksml/inc", "#count"), "+1") +
+                htButtonA(ksmlPostInto("/ksml/reset", "#count"), "reset")))
+
+    let filter =
+        htDivA(htClass("ksml-card"),
+            htInputA(htType("search") + htName("q") +
+                htPlaceholder("Filter stdlib modules" + fromCharCode(8230)) +
+                ksmlGet("/ksml/modules") +
+                ksmlTrigger("keyup changed delay:250ms, search") +
+                ksmlTarget("#mods") + ksmlSwapOuter()) +
+            moduleRows(""))
+
+    emit css +
+        htDivA(htClass("ksml-demo"),
+            "<span class=\"badge\">KSML " + fromCharCode(183) + " no JavaScript</span>" +
+            htH1("Live Krypton, in your browser") +
+            htP("Every button click and keystroke below is a real HTTP round-trip to a "
+                + "Krypton server. The server returns HTML; KSML swaps it into the page. "
+                + "No hand-written JavaScript " + fromCharCode(8212) + " this is "
+                + htStrong("KryptScript Media Language") + ".") +
+            htH2("Counter") +
+            counter +
+            htH2("Live module filter") +
+            filter +
+            htP("Built with " + htCode("k:htmk") + " + " + htCode("k:ksml") + " + "
+                + htCode("k:server") + ". " + htA("https://github.com/t3m3d/kweb", "See the source")
+                + "."))
+}
+
+// Standalone preview wrapper + server. (On krypton-lang.org these routes go
+// into site.htk's dispatch and showcaseContent() into a sitePage(...) wrapper.)
+func previewPage() {
+    emit htPage("KSML Showcase",
+        ksmlRuntime() +
+        htStyle("body{font-family:system-ui,sans-serif;margin:40px 16px;color:#222}"),
+        showcaseContent())
+}
+
+just run {
+    serverInit("8080")
+    kp("KSML showcase on http://localhost:8080")
+    while "1" == "1" {
+        let got = serverNext()
+        if got == "1" {
+            let p = serverReqPath()
+            if p == "/ksml/inc"     { hits = hits + 1  serverRespondText(counterFragment()) }
+            else if p == "/ksml/dec"   { hits = hits - 1  serverRespondText(counterFragment()) }
+            else if p == "/ksml/reset" { hits = 0          serverRespondText(counterFragment()) }
+            else if p == "/ksml/modules" { serverRespond(moduleRows(serverQueryValue("q"))) }
+            else { serverRespond(previewPage()) }
+        }
+    }
+}
