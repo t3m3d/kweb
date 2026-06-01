@@ -1,0 +1,129 @@
+// examples/ksml_search.htk — live "active search" in pure Krypton via KSML.
+//
+// Type in the box; after a short debounce, KSML fires a GET with the query,
+// the server filters a list and returns matching rows, and KSML swaps them
+// into the results panel. No hand-written JavaScript, no page reloads.
+//
+// Build + run:
+//   KRYPTON_ROOT=. kcc examples/ksml_search.htk -o ksml_search
+//   ./ksml_search
+//   open http://localhost:8080
+
+import "k:htmk"
+import "k:ksml"
+import "k:server"
+
+func NL() { emit fromCharCode(10) }
+
+// The dataset: one "name|role" per line.
+func data() {
+    emit "Ada Lovelace|mathematician" + NL() +
+         "Alan Turing|computer scientist" + NL() +
+         "Grace Hopper|rear admiral" + NL() +
+         "Katherine Johnson|mathematician" + NL() +
+         "Dennis Ritchie|c creator" + NL() +
+         "Margaret Hamilton|software engineer" + NL() +
+         "Linus Torvalds|kernel hacker" + NL() +
+         "Barbara Liskov|computer scientist" + NL() +
+         "Tim Berners-Lee|web inventor" + NL() +
+         "Donald Knuth|algorithmist"
+}
+
+func lower(s) {
+    let out = ""
+    let i = 0
+    while i < len(s) {
+        let c = s[i]
+        let v = toInt(charCode(c))
+        if v >= 65 { if v <= 90 { c = fromCharCode(v + 32) } }
+        out = out + c
+        i += 1
+    }
+    emit out
+}
+
+// Case-insensitive substring test. NB: `contains` is a (case-sensitive)
+// Krypton builtin — naming a user func `contains` is silently shadowed, so
+// this is ciContains.
+func ciContains(hay, needle) {
+    if len(needle) == 0 { emit 1 }
+    if indexOf(lower(hay), lower(needle)) >= 0 { emit 1 }
+    emit 0
+}
+
+// Render the result rows for query `q` (the swap target's contents).
+func results(q) {
+    let rows = data()
+    let n = lineCount(rows)
+    let out = ""
+    let hits = 0
+    let i = 0
+    while i < n {
+        let row = getLine(rows, i)
+        if len(row) > 0 {
+            let bar = indexOf(row, "|")
+            let name = substring(row, 0, bar)
+            let role = substring(row, bar + 1, len(row))
+            if ciContains(name + " " + role, q) == 1 {
+                out = out +
+                    htLiA(htClass("row"),
+                        htStrong(name) + htSpanA(htClass("role"), role))
+                hits += 1
+            }
+        }
+        i += 1
+    }
+    if hits == 0 {
+        out = htLiA(htClass("none"), "No matches for " + htEm(q) + ".")
+    }
+    emit htUlA(htId("results"), out)
+}
+
+func page() {
+    let css = htStyle(
+        "body{font-family:system-ui,sans-serif;max-width:560px;margin:48px auto;padding:0 16px}" +
+        "h1{color:#5d16da}" +
+        "input{width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:8px;font-size:1.05rem;box-sizing:border-box}" +
+        "ul{list-style:none;padding:0;margin-top:18px}" +
+        "li.row{display:flex;justify-content:space-between;align-items:center;" +
+            "padding:12px 14px;border:1px solid #eee;border-radius:8px;margin:6px 0}" +
+        ".role{color:#888;font-size:0.9rem}" +
+        "li.none{color:#999;padding:14px;text-align:center}" +
+        ".hint{color:#888;font-size:0.85rem;margin-top:6px}" +
+        ".htmx-request #results{opacity:0.5}"
+    )
+
+    // The input: GET /search on keyup, debounced 300ms, only when the value
+    // changed; send the input's value; swap the response into #results.
+    let search =
+        htInputA(
+            htType("search") + htName("q") + htPlaceholder("Search names" + fromCharCode(8230)) +
+            ksmlGet("/search") +
+            ksmlTrigger("keyup changed delay:300ms, search") +
+            ksmlTarget("#results") + ksmlSwapOuter())
+
+    let body =
+        htH1("KSML Live Search") +
+        htP("Type to filter " + fromCharCode(8212) + " each keystroke is a debounced server round-trip. No JavaScript written.") +
+        search +
+        htPA(htClass("hint"), "Try: \"math\", \"computer\", \"web\"") +
+        results("")
+
+    emit htPage("KSML Live Search", css + ksmlRuntime(), body)
+}
+
+just run {
+    serverInit("8080")
+    kp("KSML live search on http://localhost:8080")
+    while "1" == "1" {
+        let got = serverNext()
+        if got == "1" {
+            let p = serverReqPath()
+            if p == "/search" {
+                serverRespond(results(serverQueryValue("q")))
+            } else {
+                serverRespond(page())
+            }
+        }
+    }
+}
