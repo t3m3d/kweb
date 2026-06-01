@@ -28,8 +28,9 @@ zero JavaScript written by you.
 |--------|--------------|
 | `k:htmk` | Server-side HTML DSL — 120+ helpers (`htDiv`, `htH1`, `htForm`, `htTable`, …). Escapes by default. |
 | `k:ksml` | **KryptScript Media Language** — htmx-style hypermedia attributes. Make any element fire a request and swap part of the page. |
+| `k:krouter` | Path router — `routeIs(method, path, "POST", "/todo/:id")` + `routeParam(...)`. `:name` params and `*` catch-all. |
 | `k:ks`   | Client-side JavaScript DSL — emit JS from Krypton (`ksLet`, `ksOnClick`, `ksSetText`, …) when you want hand-rolled client logic. |
-| `k:server` | HTTP server — request routing (`serverReqPath`, `serverReqBody`), responses (`serverRespond`, `serverRespondJSON`), cookies, CORS. |
+| `k:server` | HTTP server — request access (`serverReqPath`, `serverFormValue`, `serverQueryValue`), responses (`serverRespond`, `serverRespondJSON`), cookies, CORS. |
 
 The `kweb` CLI (`kweb.htk`) wraps the common workflow: `kweb init <name>`,
 `kweb build`, `kweb serve [port]`, `kweb deploy <host> <user>`.
@@ -78,6 +79,27 @@ ksmlRuntimeLocal("/htmx.js")   // or a self-hosted copy you ship
 
 ---
 
+## Routing
+
+`k:krouter` matches request paths against patterns with named params, so
+handlers read cleanly instead of hand-rolled `if/startsWith` chains:
+
+```krypton
+let m = serverReqMethod()
+let p = serverReqPath()
+
+if routeIs(m, p, "POST", "/todo/:id") {
+    let id = routeParam("/todo/:id", p, "id")   // e.g. "3"
+    ...
+} else if routeIs(m, p, "GET", "/static/*") {
+    let file = routeTail("/static/*", p)        // e.g. "css/app.css"
+    ...
+}
+```
+
+Patterns are slash-segmented: literal segments match exactly, `:name`
+captures any one segment, a trailing `*` is a catch-all.
+
 ## Examples
 
 ```bash
@@ -91,7 +113,8 @@ KRYPTON_ROOT=. kcc examples/ksml_counter.htk -o counter && ./counter
 | `examples/interactive.htk` | Client-side interactivity via `k:ks` (hand-written JS from Krypton). |
 | `examples/form.htk` | Form handling. |
 | `examples/ksml_counter.htk` | A live counter — KSML round-trip, no JS. |
-| `examples/ksml_todo.htk` | A full add/toggle/delete todo app in pure Krypton, no JS. |
+| `examples/ksml_todo.htk` | A full add/toggle/delete todo app, no JS. Uses `k:krouter` + `serverFormValue`. |
+| `examples/ksml_search.htk` | Live active-search — debounced type-to-filter, results swapped in. No JS. |
 
 ---
 
