@@ -1,0 +1,73 @@
+// examples/ksml_counter.htk — KSML (KryptScript Media Language) demo.
+//
+// A live counter with ZERO hand-written JavaScript. The button fires an
+// HTTP POST via KSML's hypermedia attributes; the server returns just the
+// new count as an HTML fragment, and KSML swaps it into place.
+//
+// Build + run:
+//   KRYPTON_ROOT=. kcc examples/ksml_counter.htk -o ksml_counter
+//   ./ksml_counter
+//   open http://localhost:8080
+
+import "k:htmk"
+import "k:ksml"
+import "k:server"
+
+// In-memory state. (A real app would key this per-session.)
+let count = 0
+
+// The full page: includes the KSML runtime, a +1 / -1 / reset control set,
+// and a <span id="count"> that the server-returned fragments swap into.
+func page() {
+    let css = htStyle(
+        "body{font-family:system-ui,sans-serif;max-width:520px;margin:60px auto;padding:0 16px;text-align:center}" +
+        "h1{color:#5d16da}" +
+        ".count{font-size:4rem;font-weight:800;color:#222;margin:24px 0}" +
+        "button{padding:12px 24px;margin:0 6px;font-size:1.1rem;border:none;border-radius:8px;" +
+            "background:#7722ff;color:#fff;cursor:pointer}" +
+        "button:hover{background:#5d16da}" +
+        ".muted{color:#888;margin-top:32px;font-size:0.9rem}"
+    )
+
+    let body =
+        htH1("KSML Counter") +
+        htP("No hand-written JavaScript. Every click is a server round-trip + HTML swap.") +
+        htSpanA(htClass("count") + htId("count"), count + "") +
+        htDiv(
+            htButtonA(ksmlPostInto("/dec", "#count"), "-1") +
+            htButtonA(ksmlPostInto("/inc", "#count"), "+1") +
+            htButtonA(ksmlPostInto("/reset", "#count"), "reset")
+        ) +
+        htPA(htClass("muted"),
+            "Powered by KSML " + fromCharCode(183) + " KryptScript Media Language")
+
+    emit htPage("KSML Counter", css + ksmlRuntime(), body)
+}
+
+// Each mutation returns ONLY the new count text — KSML swaps it into #count.
+func fragment() {
+    emit count + ""
+}
+
+just run {
+    serverInit("8080")
+    kp("KSML counter on http://localhost:8080")
+    while "1" == "1" {
+        let got = serverNext()
+        if got == "1" {
+            let path = serverReqPath()
+            if path == "/inc" {
+                count = count + 1
+                serverRespondText(fragment())
+            } else if path == "/dec" {
+                count = count - 1
+                serverRespondText(fragment())
+            } else if path == "/reset" {
+                count = 0
+                serverRespondText(fragment())
+            } else {
+                serverRespond(page())
+            }
+        }
+    }
+}
