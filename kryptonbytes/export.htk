@@ -165,7 +165,7 @@ func siteCSS() {
         "footer .bottom{border-top:1px solid var(--border);margin-top:38px;padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--muted-2);font-size:.85rem}" +
         "#topBtn{position:fixed;bottom:26px;right:26px;width:48px;height:48px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-size:1.3rem;cursor:pointer;opacity:0;transform:translateY(20px);transition:opacity .3s,transform .3s;z-index:99;box-shadow:0 8px 24px rgba(119,34,255,0.5)}" +
         "#topBtn.show{opacity:1;transform:translateY(0)}#topBtn:hover{transform:translateY(-3px)}" +
-        ".side-ad{position:fixed;left:8px;top:50%;transform:translateY(-50%);z-index:60;width:72px;height:508px;display:block;border-radius:12px;transition:transform .25s}" +
+        ".side-ad{position:fixed;left:28px;top:50%;transform:translateY(-50%);z-index:60;width:72px;height:508px;display:block;border-radius:12px;transition:transform .25s}" +
         ".side-ad img{position:absolute;top:50%;left:50%;width:508px;height:auto;transform:translate(-50%,-50%) rotate(-90deg);border-radius:12px;border:1px solid var(--border);box-shadow:0 10px 34px rgba(0,0,0,0.55);background:var(--bg-soft)}" +
         ".side-ad:hover{transform:translateY(-50%) scale(1.03)}" +
         "@media(max-width:1024px){.side-ad{display:none}}" +
