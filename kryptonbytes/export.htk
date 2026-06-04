@@ -3,7 +3,9 @@
 // pentesting, data recovery, hardware/software repair, custom builds, consulting.
 // Premium dark theme: gradient-mesh + white-particle bg, glass UI, bento, security terminal.
 // Build (kweb build's exec() truncates large output, so build manually):
-//   kcc export.htk > out.c && gcc out.c -o export.exe -w && ./export.exe
+//   kcc export.htk --c > build.c && gcc build.c -o site_build -w && ./site_build
+//   NOTE: must use --c. Bare `kcc export.htk` defaults to --native and writes the
+//   binary to ./export.htk, OVERWRITING this source file. The --c flag is mandatory.
 
 import "k:htmk"
 
@@ -163,6 +165,10 @@ func siteCSS() {
         "footer .bottom{border-top:1px solid var(--border);margin-top:38px;padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--muted-2);font-size:.85rem}" +
         "#topBtn{position:fixed;bottom:26px;right:26px;width:48px;height:48px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-size:1.3rem;cursor:pointer;opacity:0;transform:translateY(20px);transition:opacity .3s,transform .3s;z-index:99;box-shadow:0 8px 24px rgba(119,34,255,0.5)}" +
         "#topBtn.show{opacity:1;transform:translateY(0)}#topBtn:hover{transform:translateY(-3px)}" +
+        ".side-ad{position:fixed;left:8px;top:50%;transform:translateY(-50%);z-index:60;width:72px;height:508px;display:block;border-radius:12px;transition:transform .25s}" +
+        ".side-ad img{position:absolute;top:50%;left:50%;width:508px;height:auto;transform:translate(-50%,-50%) rotate(-90deg);border-radius:12px;border:1px solid var(--border);box-shadow:0 10px 34px rgba(0,0,0,0.55);background:var(--bg-soft)}" +
+        ".side-ad:hover{transform:translateY(-50%) scale(1.03)}" +
+        "@media(max-width:1024px){.side-ad{display:none}}" +
         "@media(max-width:920px){.hero{grid-template-columns:1fr;gap:38px}.hero h1{font-size:3rem}.bento{grid-template-columns:1fr 1fr}.tile.wide{grid-column:span 2}.feat{grid-template-columns:1fr}.methods,.price{grid-template-columns:1fr}footer .cols{grid-template-columns:1fr 1fr}}" +
         "@media(max-width:560px){.hero h1{font-size:2.4rem}h2{font-size:2rem}.bento{grid-template-columns:1fr}.tile.wide{grid-column:span 1}nav .links a:not(.blog):not(.cta){display:none}}"
     )
@@ -237,12 +243,25 @@ func siteFooter() {
          "<button id=" + DQ() + "topBtn" + DQ() + " onclick=" + DQ() + "window.scrollTo({top:0,behavior:'smooth'})" + DQ() + ">" + fromCharCode(8593) + "</button>"
 }
 
+// Vertical sponsor ad — fixed on the left edge, shown on every page.
+// Same creative as krypton-lang.org's footer banner, rotated to run vertically.
+// Image lives at dist/ads/thepeoplewire.png (1536x218 leaderboard, rotated -90deg).
+func siteAd() {
+    emit "<a href=" + DQ() + "https://www.thepeoplewire.com" + DQ() +
+         " target=" + DQ() + "_blank" + DQ() +
+         " rel=" + DQ() + "noopener noreferrer sponsored" + DQ() +
+         cls("side-ad") + ">" +
+         "<img src=" + DQ() + "/ads/thepeoplewire.png" + DQ() +
+         " alt=" + DQ() + "The People Wire" + DQ() + ">" +
+         "</a>"
+}
+
 func sitePage(title, content) {
     emit "<!-- KryptonBytes | built with Krypton (kweb) -->" + fromCharCode(10) +
         htPage("KryptonBytes - " + title,
         siteCSS() + headExtra(),
         "<div class=" + DQ() + "mesh" + DQ() + "></div><canvas id=" + DQ() + "bgCanvas" + DQ() + "></canvas><div class=" + DQ() + "grain" + DQ() + "></div>" +
-        siteNav() + content + siteFooter() + siteJS()
+        siteNav() + siteAd() + content + siteFooter() + siteJS()
     )
 }
 
@@ -451,7 +470,7 @@ func privatePage(title, content) {
         siteCSS() + headExtra() +
         htVoid("meta", htAttr("name", "robots") + htAttr("content", "noindex,nofollow")),
         "<div class=" + DQ() + "mesh" + DQ() + "></div><canvas id=" + DQ() + "bgCanvas" + DQ() + "></canvas><div class=" + DQ() + "grain" + DQ() + "></div>" +
-        siteNav() + content + siteFooter() + siteJS()
+        siteNav() + siteAd() + content + siteFooter() + siteJS()
     )
 }
 
