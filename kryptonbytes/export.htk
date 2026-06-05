@@ -166,7 +166,7 @@ func siteCSS() {
         "#topBtn{position:fixed;bottom:26px;right:26px;width:48px;height:48px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-size:1.3rem;cursor:pointer;opacity:0;transform:translateY(20px);transition:opacity .3s,transform .3s;z-index:99;box-shadow:0 8px 24px rgba(119,34,255,0.5)}" +
         "#topBtn.show{opacity:1;transform:translateY(0)}#topBtn:hover{transform:translateY(-3px)}" +
         ".side-ad{position:fixed;left:28px;top:50%;transform:translateY(-50%);z-index:60;width:360px;display:block;border-radius:14px;transition:transform .25s}" +
-        ".side-ad img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);box-shadow:0 10px 34px rgba(0,0,0,0.55);background:var(--bg-soft)}" +
+        ".side-ad img{display:block;width:100%;height:auto;border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,0.55)}" +
         ".side-ad:hover{transform:translateY(-50%) scale(1.02)}" +
         "@media(max-width:1980px){.side-ad{display:none}}" +
         "@media(max-width:920px){.hero{grid-template-columns:1fr;gap:38px}.hero h1{font-size:3rem}.bento{grid-template-columns:1fr 1fr}.tile.wide{grid-column:span 2}.feat{grid-template-columns:1fr}.methods,.price{grid-template-columns:1fr}footer .cols{grid-template-columns:1fr 1fr}}" +
