@@ -1,0 +1,5 @@
+.venv/
+.deploy.env
+build.c
+site_build
+*.original.md
