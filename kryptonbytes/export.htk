@@ -165,10 +165,11 @@ func siteCSS() {
         "footer .bottom{border-top:1px solid var(--border);margin-top:38px;padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;color:var(--muted-2);font-size:.85rem}" +
         "#topBtn{position:fixed;bottom:26px;right:26px;width:48px;height:48px;border-radius:14px;background:var(--grad);color:#fff;border:none;font-size:1.3rem;cursor:pointer;opacity:0;transform:translateY(20px);transition:opacity .3s,transform .3s;z-index:99;box-shadow:0 8px 24px rgba(119,34,255,0.5)}" +
         "#topBtn.show{opacity:1;transform:translateY(0)}#topBtn:hover{transform:translateY(-3px)}" +
-        ".side-ad{position:fixed;left:28px;top:50%;transform:translateY(-50%);z-index:60;width:360px;display:block;border-radius:14px;transition:transform .25s}" +
+        ".side-ad{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:60;width:208px;display:block;border-radius:14px;transition:transform .25s}" +
         ".side-ad img{display:block;width:100%;height:auto;border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,0.55)}" +
         ".side-ad:hover{transform:translateY(-50%) scale(1.02)}" +
-        "@media(max-width:1980px){.side-ad{display:none}}" +
+        "@media(min-width:1101px){body{padding-left:248px}}" +
+        "@media(max-width:1100px){.side-ad{display:none}}" +
         "@media(max-width:920px){.hero{grid-template-columns:1fr;gap:38px}.hero h1{font-size:3rem}.bento{grid-template-columns:1fr 1fr}.tile.wide{grid-column:span 2}.feat{grid-template-columns:1fr}.methods,.price{grid-template-columns:1fr}footer .cols{grid-template-columns:1fr 1fr}}" +
         "@media(max-width:560px){.hero h1{font-size:2.4rem}h2{font-size:2rem}.bento{grid-template-columns:1fr}.tile.wide{grid-column:span 1}nav .links a:not(.blog):not(.cta){display:none}}"
     )
@@ -244,10 +245,10 @@ func siteFooter() {
 }
 
 // Vertical sponsor ad — fixed on the left, shown on every page.
-// Creative at dist/ads/second.png (380x514, border auto-trimmed from a
-// 1536x1024 source). Displayed at 360px wide (~487px tall via aspect).
-// Shown only on wide screens (>1980px) so it never overlaps the centered
-// 1180px content column.
+// Creative at dist/ads/second.png (border auto-trimmed from a 1536x1024
+// source; see update-ad.sh). Displayed at 208px wide. Shown above 1100px;
+// page content is shifted right (body padding-left) to clear the rail, so
+// it fits even on a 13" laptop without overlapping content.
 func siteAd() {
     emit "<a href=" + DQ() + "https://www.thepeoplewire.com" + DQ() +
          " target=" + DQ() + "_blank" + DQ() +
