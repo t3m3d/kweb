@@ -244,9 +244,10 @@ func siteFooter() {
 }
 
 // Vertical sponsor ad — fixed on the left, shown on every page.
-// Creative at dist/ads/second.png (1536x1024). Displayed at 360px wide
-// (~240px tall via aspect). Shown only on wide screens (>1980px) so it
-// never overlaps the centered 1180px content column.
+// Creative at dist/ads/second.png (380x514, border auto-trimmed from a
+// 1536x1024 source). Displayed at 360px wide (~487px tall via aspect).
+// Shown only on wide screens (>1980px) so it never overlaps the centered
+// 1180px content column.
 func siteAd() {
     emit "<a href=" + DQ() + "https://www.thepeoplewire.com" + DQ() +
          " target=" + DQ() + "_blank" + DQ() +
