@@ -360,6 +360,44 @@ func pageContact() {
     emit sitePage("Contact", content)
 }
 
+func pageStemPrivacy() {
+    let content = "<section><div class=" + DQ() + "wrap" + DQ() + ">" +
+        htH1("Stem Privacy Policy") +
+        htP(htEm("Effective July 15, 2026")) +
+        htP("This policy applies to Stem, the Krypton terminal application for Windows, macOS, and Linux. The Windows version is the product distributed through the Microsoft Store.") +
+        htH2("Summary") +
+        "<div class=" + DQ() + "card" + DQ() + " style=" + DQ() + "margin:20px 0" + DQ() + ">" +
+        htH3("Stem does not collect your data") +
+        htP("Stem has no telemetry, analytics, advertising, user accounts, tracking SDKs, or developer-operated cloud service. Stem does not sell, rent, or share personal information.") +
+        "</div>" +
+        htH2("Information processed on your device") +
+        htP("A terminal must process text you type and text produced by your shell and command-line programs. This can include commands, file and folder paths, environment information, and program output. Stem processes this information locally to provide the terminal session.") +
+        htUl(
+            htLi("Terminal input and output are held locally in the active session and scrollback buffer.") +
+            htLi("Settings, including themes, shell choices, and window preferences, are stored locally in stem.conf.") +
+            htLi("Stem reads clipboard text only when you choose Paste and writes clipboard text only when you choose Copy or enable a related local preference.") +
+            htLi("Stem does not transmit terminal contents, command history, clipboard contents, configuration, or file paths to the developer.")
+        ) +
+        htH2("Commands, shells, and third-party services") +
+        htP("Stem launches a shell such as PowerShell and displays programs that you run. Those shells, commands, package managers, websites, remote servers, and other third-party tools may access files or networks under their own behavior and privacy terms. Network activity started by a command is not data collection by Stem.") +
+        htH2("Updates and operating-system services") +
+        htP("Microsoft Store, Windows, GitHub, Homebrew, or your operating system may process update, download, crash, or diagnostic information according to their own settings and privacy policies. Stem does not receive that information unless you deliberately send it when requesting support.") +
+        htH2("Storage, retention, and your controls") +
+        htP("Stem does not maintain a developer-controlled database of user information. Session scrollback is not uploaded and is discarded when the applicable session ends unless a shell or command separately saves information. You can clear scrollback from Stem, edit or delete stem.conf, clear the system clipboard, and uninstall Stem using normal operating-system controls.") +
+        htH2("Disclosure and sale") +
+        htP("Because Stem does not collect personal information, it does not disclose or sell personal information to advertisers, data brokers, or other third parties.") +
+        htH2("Children's privacy") +
+        htP("Stem is a general-purpose developer tool and is not directed to children. Stem does not knowingly collect personal information from children or any other users.") +
+        htH2("Security") +
+        htP("Stem keeps its own configuration and terminal processing local. Users remain responsible for the commands they run, the software they install, remote systems they access, and the security of their operating-system account.") +
+        htH2("Changes to this policy") +
+        htP("If Stem adds a feature that changes its data practices, this policy will be updated before that feature is released. The effective date above identifies the current version.") +
+        htH2("Contact") +
+        htP("Privacy questions may be sent to " + htA("mailto:brian@krypton-lang.org", "brian@krypton-lang.org") + ".") +
+        "</div></section>"
+    emit sitePage("Stem Privacy Policy", content)
+}
+
 // ── Static export (writes .html files) ───────────────────────────────
 
 func writePage(path, html) {
@@ -376,6 +414,7 @@ just run {
     writePage(dist + "/programs.html", pagePrograms())
     writePage(dist + "/downloads.html", pageDownloads())
     writePage(dist + "/contact.html", pageContact())
+    writePage(dist + "/stem-privacy.html", pageStemPrivacy())
 
-    printErr("done: 6 pages in " + dist + "/")
+    printErr("done: 7 pages in " + dist + "/")
 }
