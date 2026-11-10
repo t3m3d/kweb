@@ -107,7 +107,7 @@ func siteJS() {
         "if(topBtn){window.addEventListener('scroll',function(){if(window.scrollY>400)topBtn.classList.add('show');else topBtn.classList.remove('show');});}" +
         "var tc=document.getElementById('typeCode');" +
         "if(tc){" +
-        "var raw='func fib(n) {\\n    if n &lt;= 1 { emit n }\\n    emit fib(n - 1) + fib(n - 2)\\n}\\n\\njust run {\\n    kp(fib(10))  // 55\\n}';" +
+        "var raw='func fib(n) {\\n    if n &lt;= 1 { emit n }\\n    emit fib(n - 1) + fib(n - 2)\\n}\\n\\njust run {\\n    print(fib(10))  // 55\\n}';" +
         "var ci=0;" +
         "function hl(s){" +
         "s=s.replace(/\\/\\/.*/g,function(m){return '<span class=cm>'+m+'</span>';});" +
@@ -271,11 +271,11 @@ func pageFeatures() {
         htH2("Language Features") +
         "<div class=" + DQ() + "grid" + DQ() + ">" +
         "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Functions") + htPre(htCode("func add(a, b) {" + NL() + "    emit a + b" + NL() + "}")) + "</div>" +
-        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Lambdas") + htPre(htCode("let dbl = func(x) { emit x * 2 }" + NL() + "kp(dbl(5))  // 10")) + "</div>" +
-        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Pattern Matching") + htPre(htCode("match color {" + NL() + "    " + DQ() + "red" + DQ() + " { kp(" + DQ() + "warm" + DQ() + ") }" + NL() + "    else  { kp(" + DQ() + "other" + DQ() + ") }" + NL() + "}")) + "</div>" +
+        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Lambdas") + htPre(htCode("let dbl = func(x) { emit x * 2 }" + NL() + "print(dbl(5))  // 10")) + "</div>" +
+        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Pattern Matching") + htPre(htCode("match color {" + NL() + "    " + DQ() + "red" + DQ() + " { print(" + DQ() + "warm" + DQ() + ") }" + NL() + "    else  { print(" + DQ() + "other" + DQ() + ") }" + NL() + "}")) + "</div>" +
         "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Structs") + htPre(htCode("struct Point { let x; let y }" + NL() + "let p = Point { x: 10, y: 20 }")) + "</div>" +
-        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Try/Catch") + htPre(htCode("try {" + NL() + "    throw " + DQ() + "oops" + DQ() + NL() + "} catch e { kp(e) }")) + "</div>" +
-        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("String Interpolation") + htPre(htCode("kp(`Hello, {name}!`)")) + "</div>" +
+        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("Try/Catch") + htPre(htCode("try {" + NL() + "    throw " + DQ() + "oops" + DQ() + NL() + "} catch e { print(e) }")) + "</div>" +
+        "<div class=" + DQ() + "card" + DQ() + ">" + htH3("String Interpolation") + htPre(htCode("print(`Hello, {name}!`)")) + "</div>" +
         "</div>" +
         htH2("Standard Library") +
         htP("~150 built-in functions plus 36 stdlib modules covering I/O, strings, numbers, lists, maps, structs, JSON, CSV, math, sorting, and more.") +

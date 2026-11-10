@@ -149,7 +149,7 @@ func previewPage() {
 
 just run {
     serverInit("8080")
-    kp("KSML showcase on http://localhost:8080")
+    print("KSML showcase on http://localhost:8080")
     while "1" == "1" {
         let got = serverNext()
         if got == "1" {

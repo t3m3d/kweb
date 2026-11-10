@@ -51,7 +51,7 @@ func fragment() {
 
 just run {
     serverInit("8080")
-    kp("KSML counter on http://localhost:8080")
+    print("KSML counter on http://localhost:8080")
     while "1" == "1" {
         let got = serverNext()
         if got == "1" {
